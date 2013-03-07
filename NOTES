@@ -1,0 +1,75 @@
+Structure of the Racket virtual machine model:
+
+5 "registers" for the machine
+
+V - the most recent evaluated value
+S - the machine stack (it is a stack machine so all variables are stored and referenced here)
+H - the machine heap (this is where all the boxed data and closures go)
+T - text segment with the bodies of program segments and bytecode cycles
+C - command register, set of instructions to be run, this gets reloaded from the text segment)
+
+The commands are:
+
+i --> e
+   |  (swap n)
+   |  (reorder i (e m) ...)
+   |  (set n)
+   |  (set-box n)
+   |  (branch e e)
+   |  framepop
+   |  framepush
+   |  (call n)
+   |  (self-call x)
+
+where e is
+
+e --> (loc n)
+   |  (loc-noclr n)
+   |  (loc-clr n)
+   |  (loc-box n)
+   |  (loc-box-noclr n)
+   |  (loc-box-clr n)
+   |  (let-one e e)
+   |  (let-void n e)
+   |  (let-void-box n e)
+   |  (boxenv n e)
+   |  (install-value n e e)
+   |  (install-value-box n e e)
+   |  (application e e ...)
+   |  (seq e e e ...)
+   |  (branch e e e)
+   |  (let-rec (l ...) e)
+   |  (indirect x)
+   |  (proc-const (t ...) e)
+   |  (case-lam l ...)
+   |  l
+   |  v
+   |  (self-app x e_0 e_1 ...)
+   |  (primval ---)
+
+and l is
+
+l --> (lam n (n ...) x)
+
+and v is
+
+v --> number
+      void
+      'variable
+      b
+      undefined
+      (clos x)
+
+Ideas for abstracting this:
+
+1. Follow the abstracting abstract machines approach, but apply it directly to
+   the abstract machine that describes Racket.  This is the approach Kimball is
+   taking (it was my first thought too, but Matt seems to think it is a step a
+   little too far off of the main abstracting abstract machines path).
+
+2. Try to encode the byte code into a CESK machine and then follow the
+   abstracting abstract machines approach.
+
+In doing #2: The value register is a bit of a strange artifact of the stack
+machine, maybe try to see if anyone has already converted a stack machine into
+a CESK machine.
