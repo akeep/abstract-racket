@@ -3,63 +3,172 @@
 (require "priminfo.rkt")
 
 (define-syntax define-racket-prims
-  (lambda (x)
-    (define (->string x)
-      (cond
-        [(identifier? x) (symbol->string (syntax->datum x))]
-        [(symbol? x) (symbol->string x)]
-        [(string? x) x]
-        [else (error '->string "not sure how to convert ~s to a string" x)]))
-    (define (construct-id tid . rest)
-      (when (null? rest) (error 'construct-id "must include more then just template id"))
-      (datum->syntax tid
-        (string->symbol
-          (apply string-append (map ->string rest)))))
-    (syntax-case x ()
-      [(k [type prim ...] ...)
-       (and (andmap (lambda (type) (identifier? type)) (syntax-e #'(type ...)))
-            (andmap (lambda (prim) (identifier? prim)) (syntax-e #'(prim ... ...))))
-       (with-syntax ([all-primitives (construct-id #'k "all-primitives")]
-                     [(type-primitives ...)
-                      (map (lambda (type) (construct-id #'k type "-primitives")) (syntax-e #'(type ...)))]
-                     [(primitive-type? ...)
-                      (map (lambda (type) (construct-id #'k "primitive-" type "?")) (syntax-e #'(type ...)))])
-         #'(begin
-             (define type-primitives '(prim ...)) ...
-             (define primitive-type?
+ (lambda (x)
+ (define (->string x)
+ (cond
+ [(identifier? x) (symbol->string (syntax->datum x))]
+ [(symbol? x) (symbol->string x)]
+ [(string? x) x]
+ [else (error '->string "not sure how to convert ~s to a string" x)]))
+ (define (construct-id tid . rest)
+ (when (null? rest) (error 'construct-id "must include more then just template id"))
+ (datum->syntax tid
+ (string->symbol
+ (apply string-append (map ->string rest)))))
+ (syntax-case x ()
+ [(k [type prim ...] ...)
+ (and (andmap (lambda (type) (identifier? type)) (syntax-e #'(type ...)))
+ (andmap (lambda (prim) (identifier? prim)) (syntax-e #'(prim ... ...))))
+ (with-syntax ([all-primitives (construct-id #'k "all-primitives")]
+ [(type-primitives ...)
+ (map (lambda (type) (construct-id #'k type "-primitives")) (syntax-e #'(type ...)))]
+ [(primitive-type? ...)
+ (map (lambda (type) (construct-id #'k "primitive-" type "?")) (syntax-e #'(type ...)))])
+ #'(begin
+ (define type-primitives '(prim ...)) ...
+ (define primitive-type?
                (lambda (x)
                  (let ([p (if (exact-integer? x) (lookup-primitive x) x)])
                    (and (memq x type-primitives) #t)))) ...
              (define all-primitives (append type-primitives ...))))])))
 
 (define-racket-prims
-  [simple * + - / < <= = > >= abs acos add1 angle arithmetic-shift asin atan bitwise-and bitwise-bit-field bitwise-bit-set? bitwise-ior bitwise-not bitwise-xor ceiling complex? append assoc assq assv caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr cadar caddar cadddr caddr cadr car cdaaar cdaadr cdaar cdadar cdaddr cdadr cdar cddaar cddadr cddar cdddar cddddr cdddr cddr cdr cons boolean? box box-immutable box? byte? bytes bytes->immutable-bytes bytes->list bytes->path bytes->path-element bytes->string/latin-1 bytes->string/locale bytes->string/utf-8 bytes-append bytes-copy bytes-copy! bytes-fill! bytes-length bytes-ref bytes-set! bytes-utf-8-index bytes-utf-8-length bytes-utf-8-ref bytes<? bytes=? bytes>? bytes? char->integer char-alphabetic? char-blank? char-ci<=? char-ci<? char-ci=? char-ci>=? char-ci>? char-downcase char-foldcase char-general-category char-graphic? char-iso-control? char-lower-case? char-numeric? char-punctuation? char-symbolic? char-title-case? char-titlecase char-upcase char-upper-case? char-utf-8-length char-whitespace? char<=? char<? char=? char>=? char>? char? absolute-path? build-path build-path/convention-type cleanse-path complete-path? byte-pregexp byte-pregexp? byte-regexp byte-regexp? bound-identifier=? flmax flmin fl>= fl<= fl> fl< fl= fxmax fxmin fx>= fx<= fx> fx< fx= flsqrt flabs fl/ fl* fl- fl+ fxabs fxmodulo fxremainder fxquotient fx* fx- fx+ flimag-part flreal-part make-flrectangular flexpt flexp fllog flatan flacos flasin fltan flcos flsin flfloor flceiling flround fltruncate fl->fx fx->fl fxrshift fxlshift fxnot fxxor fxior fxand fl->exact-integer ->fl fxvector-set! fxvector-ref fxvector-length pregexp? regexp? regexp-replace* regexp-replace regexp-match-peek-positions-immediate/end regexp-match-peek-positions-immediate regexp-match-peek-immediate regexp-match-peek-positions/end regexp-match-peek-positions regexp-match-peek regexp-match? regexp-match-positions/end regexp-match-positions regexp-match/end regexp-match pregexp regexp string-locale-downcase string-locale-upcase string-foldcase string-titlecase string-downcase string-upcase string-normalize-nfkd string-normalize-nfd string-normalize-nfkc string-normalize-nfc string->immutable-string string-fill! string-copy! string-copy list->string string->list string-append substring string-ci>=? string-ci<=? string-locale-ci>? string-ci>? string-locale-ci<? string-ci<? string>=? string<=? string-locale>? string>? string-locale<? string<? string-locale-ci=? string-ci=? string-locale=? string=? string-set! string-ref string-length string make-string string? real->floating-point-bytes floating-point-bytes->real integer->integer-bytes integer-bytes->integer string->number number->string min max negative? positive? zero? modulo quotient/remainder remainder quotient sub1 inexact->exact exact->inexact magnitude imag-part real-part make-polar make-rectangular expt integer-sqrt/remainder integer-sqrt sqrt tan cos sin log exp denominator numerator round truncate floor lcm gcd integer-length even? odd? inexact? exact? real->double-flonum real->single-flonum single-flonum? flonum? inexact-real? fixnum? exact-positive-integer? exact-nonnegative-integer? exact-integer? integer? rational? real? number? set-box! unbox member memv memq list-ref list-tail reverse length list* list list? null? set-mcdr! set-mcar! mcdr mcar mcons mpair? pair? symbol->string string->symbol symbol-interned? symbol-unreadable? symbol? seconds->date void? void unsafe-fx<= unsafe-fx> unsafe-fx< unsafe-fx= unsafe-flsqrt unsafe-flabs unsafe-fl/ unsafe-fl* unsafe-fl- unsafe-fl+ unsafe-fxabs unsafe-fxmodulo unsafe-fxremainder unsafe-fxquotient unsafe-fx* unsafe-fx- unsafe-fx+ unsafe-flimag-part unsafe-flreal-part unsafe-make-flrectangular unsafe-u16vector-set! unsafe-u16vector-ref unsafe-s16vector-set! unsafe-s16vector-ref unsafe-fxvector-set! unsafe-fxvector-ref unsafe-fxvector-length unsafe-flvector-set! unsafe-flvector-ref unsafe-flvector-length unsafe-f64vector-set! unsafe-f64vector-ref unsafe-fl->fx unsafe-fx->fl unsafe-fxrshift unsafe-fxlshift unsafe-fxnot unsafe-fxxor unsafe-fxior unsafe-fxand unsafe-bytes-set! unsafe-bytes-ref unsafe-bytes-length unsafe-string-set! unsafe-string-ref unsafe-string-length unsafe-set-mcdr! unsafe-set-mcar! unsafe-mcdr unsafe-mcar unsafe-list-tail unsafe-list-ref unsafe-cdr unsafe-car unsafe-flmax unsafe-flmin unsafe-fl>= unsafe-fl<= unsafe-fl> unsafe-fl< unsafe-fl= unsafe-fxmax unsafe-fxmin unsafe-fx>= make-fxvector fxvector? fxvector flvector-set! flvector-ref flvector-length make-flvector flvector? flvector regexp-max-lookbehind print-as-expression print-boolean-long-form print-reader-abbreviations print-syntax-width print-mpair-curly-braces print-pair-curly-braces print-unreadable print-hash-table print-vector-length print-box print-struct print-graph equal-secondary-hash-code equal-hash-code eqv-hash-code eq-hash-code hash-remove hash-remove! hash-ref hash-set hash-set! hash-copy hash-count hash-weak? hash-equal? hash-eqv? hash-eq? hash? hasheqv hasheq hash make-immutable-hasheqv make-immutable-hasheq make-immutable-hash make-weak-hasheqv make-weak-hasheq make-weak-hash make-hasheqv make-hasheq make-hash immutable? keyword->string string->keyword keyword<? keyword? make-bytes string-utf-8-length string->bytes/latin-1 string->bytes/locale string->bytes/utf-8 list->bytes subbytes vector->values vector->immutable-vector vector-copy! vector-fill! list->vector vector->list vector-set! vector-ref vector-length vector-immutable vector make-vector integer->char vector? date-time-zone-offset date-dst? date-year-day date-week-day date-year date-month date-day date-hour date-minute date-second date? date equal?/recur equal? eqv? eq?
-  read-accept-lang
-  read-accept-reader
-  read-accept-quasiquote
-  read-accept-infix-dot
-  read-accept-dot
-  read-decimal-as-inexact
-  read-accept-bar-quote
-  read-accept-box
-  read-accept-compiled
-  read-accept-graph
-  read-curly-brace-as-paren
-  read-square-bracket-as-paren
-  read-case-sensitive
-  open-output-string
-  open-output-bytes
-  open-input-string
-  open-input-bytes
-]
-  [runtime-specific box-cas! alarm-evt always-evt choice-evt channel-put-evt channel-put-evt? channel? collect-garbage]
-  [potentially-simple bytes-close-converter bytes-convert bytes-convert-end bytes-converter? bytes-open-converter weak-box? weak-box-value make-weak-box gensym string->unreadable-symbol string->uninterned-symbol ]
-  [io char-ready? byte-ready? banner close-input-port close-output-port current-directory file-size delete-directory make-directory copy-file rename-file-or-directory delete-file link-exists? directory-exists? file-exists? current-seconds current-gc-milliseconds current-process-milliseconds current-inexact-milliseconds current-milliseconds open-input-file port-closed? terminal-port? file-stream-port? output-port? input-port? peek-bytes! peek-bytes read-bytes! read-bytes peek-string! peek-string read-string! read-string read-line read-bytes-line read-byte-or-special read-byte read-char-or-special read-char read-language read-syntax/recursive read-syntax read/recursive read port-commit-peeked write-byte write-char newline peek-byte-or-special peek-byte peek-char-or-special peek-char write-special-avail* write-special flush-output print display write printf 
-  write-string
-  write-bytes
-]
-  [control abort-current-continuation break-enabled break-thread call-in-nested-thread call-with-composable-continuation call-with-continuation-barrier call-with-continuation-prompt call-with-current-continuation call-with-escape-continuation call-with-immediate-continuation-mark call-with-input-file call-with-output-file call-with-semaphore call-with-semaphore/enable-break call-with-values call/cc call/ec ormap andmap for-each map apply procedure? time-apply hash-iterate-key hash-iterate-value hash-iterate-next hash-iterate-first hash-for-each hash-map ]
-  [who-knows arity-at-least arity-at-least-value arity-at-least? checked-procedure-check-and-extract chaperone-box chaperone-continuation-mark-key chaperone-evt chaperone-hash chaperone-of? chaperone-procedure chaperone-prompt-tag chaperone-struct chaperone-struct-type chaperone-vector chaperone? compile compile-allow-set!-undefined compile-context-preservation-enabled compile-enforce-module-constants compile-syntax compiled-expression? compiled-module-expression?])
+  [simple * + - / < <= = > >= abs acos add1 angle arithmetic-shift asin atan
+          bitwise-and bitwise-bit-field bitwise-bit-set? bitwise-ior
+          bitwise-not bitwise-xor ceiling complex? append assoc assq assv
+          caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr cadar
+          caddar cadddr caddr cadr car cdaaar cdaadr cdaar cdadar cdaddr cdadr
+          cdar cddaar cddadr cddar cdddar cddddr cdddr cddr cdr cons boolean?
+          box box-immutable box? byte? bytes bytes->immutable-bytes bytes->list
+          bytes->path bytes->path-element bytes->string/latin-1
+          bytes->string/locale bytes->string/utf-8 bytes-append bytes-copy
+          bytes-copy! bytes-fill! bytes-length bytes-ref bytes-set!
+          bytes-utf-8-index bytes-utf-8-length bytes-utf-8-ref bytes<? bytes=?
+          bytes>? bytes? char->integer char-alphabetic? char-blank? char-ci<=?
+          char-ci<? char-ci=? char-ci>=? char-ci>? char-downcase char-foldcase
+          char-general-category char-graphic? char-iso-control?
+          char-lower-case? char-numeric? char-punctuation? char-symbolic?
+          char-title-case? char-titlecase char-upcase char-upper-case?
+          char-utf-8-length char-whitespace? char<=? char<? char=? char>=?
+          char>? char? absolute-path? build-path build-path/convention-type
+          cleanse-path complete-path? byte-pregexp byte-pregexp? byte-regexp
+          byte-regexp? bound-identifier=? flmax flmin fl>= fl<= fl> fl< fl=
+          fxmax fxmin fx>= fx<= fx> fx< fx= flsqrt flabs fl/ fl* fl- fl+ fxabs
+          fxmodulo fxremainder fxquotient fx* fx- fx+ flimag-part flreal-part
+          make-flrectangular flexpt flexp fllog flatan flacos flasin fltan
+          flcos flsin flfloor flceiling flround fltruncate fl->fx fx->fl
+          fxrshift fxlshift fxnot fxxor fxior fxand fl->exact-integer ->fl
+          fxvector-set! fxvector-ref fxvector-length pregexp? regexp?
+          regexp-replace* regexp-replace
+          regexp-match-peek-positions-immediate/end
+          regexp-match-peek-positions-immediate regexp-match-peek-immediate
+          regexp-match-peek-positions/end regexp-match-peek-positions
+          regexp-match-peek regexp-match? regexp-match-positions/end
+          regexp-match-positions regexp-match/end regexp-match pregexp regexp
+          string-locale-downcase string-locale-upcase string-foldcase
+          string-titlecase string-downcase string-upcase string-normalize-nfkd
+          string-normalize-nfd string-normalize-nfkc string-normalize-nfc
+          string->immutable-string string-fill! string-copy! string-copy
+          list->string string->list string-append substring string-ci>=?
+          string-ci<=? string-locale-ci>? string-ci>? string-locale-ci<?
+          string-ci<? string>=? string<=? string-locale>? string>?
+          string-locale<? string<? string-locale-ci=? string-ci=?
+          string-locale=? string=? string-set! string-ref string-length string
+          make-string string? real->floating-point-bytes
+          floating-point-bytes->real integer->integer-bytes
+          integer-bytes->integer string->number number->string min max
+          negative? positive? zero? modulo quotient/remainder remainder
+          quotient sub1 inexact->exact exact->inexact magnitude imag-part
+          real-part make-polar make-rectangular expt integer-sqrt/remainder
+          integer-sqrt sqrt tan cos sin log exp denominator numerator round
+          truncate floor lcm gcd integer-length even? odd? inexact? exact?
+          real->double-flonum real->single-flonum single-flonum? flonum?
+          inexact-real? fixnum? exact-positive-integer?
+          exact-nonnegative-integer? exact-integer? integer? rational? real?
+          number? set-box! unbox member memv memq list-ref list-tail reverse
+          length list* list list? null? set-mcdr! set-mcar! mcdr mcar mcons
+          mpair? pair? symbol->string string->symbol symbol-interned?
+          symbol-unreadable? symbol? seconds->date void? void unsafe-fx<=
+          unsafe-fx> unsafe-fx< unsafe-fx= unsafe-flsqrt unsafe-flabs
+          unsafe-fl/ unsafe-fl* unsafe-fl- unsafe-fl+ unsafe-fxabs
+          unsafe-fxmodulo unsafe-fxremainder unsafe-fxquotient unsafe-fx*
+          unsafe-fx- unsafe-fx+ unsafe-flimag-part unsafe-flreal-part
+          unsafe-make-flrectangular unsafe-u16vector-set! unsafe-u16vector-ref
+          unsafe-s16vector-set! unsafe-s16vector-ref unsafe-fxvector-set!
+          unsafe-fxvector-ref unsafe-fxvector-length unsafe-flvector-set!
+          unsafe-flvector-ref unsafe-flvector-length unsafe-f64vector-set!
+          unsafe-f64vector-ref unsafe-fl->fx unsafe-fx->fl unsafe-fxrshift
+          unsafe-fxlshift unsafe-fxnot unsafe-fxxor unsafe-fxior unsafe-fxand
+          unsafe-bytes-set! unsafe-bytes-ref unsafe-bytes-length
+          unsafe-string-set! unsafe-string-ref unsafe-string-length
+          unsafe-set-mcdr! unsafe-set-mcar! unsafe-mcdr unsafe-mcar
+          unsafe-list-tail unsafe-list-ref unsafe-cdr unsafe-car unsafe-flmax
+          unsafe-flmin unsafe-fl>= unsafe-fl<= unsafe-fl> unsafe-fl< unsafe-fl=
+          unsafe-fxmax unsafe-fxmin unsafe-fx>= make-fxvector fxvector?
+          fxvector flvector-set! flvector-ref flvector-length make-flvector
+          flvector? flvector regexp-max-lookbehind print-as-expression
+          print-boolean-long-form print-reader-abbreviations print-syntax-width
+          print-mpair-curly-braces print-pair-curly-braces print-unreadable
+          print-hash-table print-vector-length print-box print-struct
+          print-graph equal-secondary-hash-code equal-hash-code eqv-hash-code
+          eq-hash-code hash-remove hash-remove! hash-ref hash-set hash-set!
+          hash-copy hash-count hash-weak? hash-equal? hash-eqv? hash-eq? hash?
+          hasheqv hasheq hash make-immutable-hasheqv make-immutable-hasheq
+          make-immutable-hash make-weak-hasheqv make-weak-hasheq make-weak-hash
+          make-hasheqv make-hasheq make-hash immutable? keyword->string
+          string->keyword keyword<? keyword? make-bytes string-utf-8-length
+          string->bytes/latin-1 string->bytes/locale string->bytes/utf-8
+          list->bytes subbytes vector->values vector->immutable-vector
+          vector-copy! vector-fill! list->vector vector->list vector-set!
+          vector-ref vector-length vector-immutable vector make-vector
+          integer->char vector? date-time-zone-offset date-dst? date-year-day
+          date-week-day date-year date-month date-day date-hour date-minute
+          date-second date? date equal?/recur equal? eqv? eq? read-accept-lang
+          read-accept-reader read-accept-quasiquote read-accept-infix-dot
+          read-accept-dot read-decimal-as-inexact read-accept-bar-quote
+          read-accept-box read-accept-compiled read-accept-graph
+          read-curly-brace-as-paren read-square-bracket-as-paren
+          read-case-sensitive open-output-string open-output-bytes
+          open-input-string open-input-bytes]
+  [runtime-specific box-cas! alarm-evt always-evt choice-evt channel-put-evt
+                    channel-put-evt? channel? collect-garbage]
+  [potentially-simple bytes-close-converter bytes-convert bytes-convert-end
+                      bytes-converter? bytes-open-converter weak-box?
+                      weak-box-value make-weak-box gensym
+                      string->unreadable-symbol string->uninterned-symbol]
+  [io char-ready? byte-ready? banner close-input-port close-output-port
+      current-directory file-size delete-directory make-directory copy-file
+      rename-file-or-directory delete-file link-exists? directory-exists?
+      file-exists? current-seconds current-gc-milliseconds
+      current-process-milliseconds current-inexact-milliseconds
+      current-milliseconds open-input-file port-closed? terminal-port?
+      file-stream-port? output-port? input-port? peek-bytes! peek-bytes
+      read-bytes! read-bytes peek-string! peek-string read-string! read-string
+      read-line read-bytes-line read-byte-or-special read-byte
+      read-char-or-special read-char read-language read-syntax/recursive
+      read-syntax read/recursive read port-commit-peeked write-byte write-char
+      newline peek-byte-or-special peek-byte peek-char-or-special peek-char
+      write-special-avail* write-special flush-output print display write
+      printf write-string write-bytes]
+  [control abort-current-continuation break-enabled break-thread
+           call-in-nested-thread call-with-composable-continuation
+           call-with-continuation-barrier call-with-continuation-prompt
+           call-with-current-continuation call-with-escape-continuation
+           call-with-immediate-continuation-mark call-with-input-file
+           call-with-output-file call-with-semaphore
+           call-with-semaphore/enable-break call-with-values call/cc call/ec
+           ormap andmap for-each map apply procedure? time-apply
+           hash-iterate-key hash-iterate-value hash-iterate-next
+           hash-iterate-first hash-for-each hash-map]
+  [who-knows arity-at-least arity-at-least-value arity-at-least?
+             checked-procedure-check-and-extract chaperone-box
+             chaperone-continuation-mark-key chaperone-evt chaperone-hash
+             chaperone-of? chaperone-procedure chaperone-prompt-tag
+             chaperone-struct chaperone-struct-type chaperone-vector chaperone?
+             compile compile-allow-set!-undefined
+             compile-context-preservation-enabled
+             compile-enforce-module-constants compile-syntax
+             compiled-expression? compiled-module-expression?])
 
 (define difference
   (lambda (s1 s2)
